@@ -59,10 +59,10 @@ export default function NewGuestPage() {
     setError(null)
     setSuccess(null)
 
-    // First, create or get the profile
+    const eventLink = getEventLink()
     let profileId: string | null = null
 
-    // Check if profile exists
+    // Check if profile already exists
     const { data: existingProfile } = await supabase
       .from('profiles')
       .select('id')
@@ -71,8 +71,64 @@ export default function NewGuestPage() {
 
     if (existingProfile) {
       profileId = existingProfile.id
-    } else {
-      // Create new profile
+    }
+
+    // If sending invite, create auth user first (triggers profile creation)
+    if (formData.sendInvite && !profileId) {
+      setSendingInvite(true)
+      
+      const { error: inviteError } = await supabase.auth.signInWithOtp({
+        email: formData.email,
+        options: {
+          emailRedirectTo: eventLink,
+          data: {
+            name: formData.name,
+          }
+        },
+      })
+
+      if (inviteError) {
+        setError(`Failed to send invitation: ${inviteError.message}`)
+        setGuestLink(eventLink)
+        setSendingInvite(false)
+        setLoading(false)
+        return
+      }
+
+      // Wait for trigger to create profile, then fetch it
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      const { data: newProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', formData.email)
+        .single()
+      
+      if (newProfile) {
+        profileId = newProfile.id
+      } else {
+        // Profile not created by trigger, create manually
+        const { data: manualProfile, error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            email: formData.email,
+            name: formData.name,
+            role: 'guest',
+          })
+          .select('id')
+          .single()
+
+        if (profileError) {
+          setError(`Invitation sent but failed to create profile: ${profileError.message}`)
+          setSendingInvite(false)
+          setLoading(false)
+          return
+        }
+        profileId = manualProfile.id
+      }
+      setSendingInvite(false)
+    } else if (!profileId) {
+      // No invite requested and no existing profile - create one manually
       const { data: newProfile, error: profileError } = await supabase
         .from('profiles')
         .insert({
@@ -89,6 +145,27 @@ export default function NewGuestPage() {
         return
       }
       profileId = newProfile.id
+    } else if (formData.sendInvite) {
+      // Profile exists, just send the invite
+      setSendingInvite(true)
+      const { error: inviteError } = await supabase.auth.signInWithOtp({
+        email: formData.email,
+        options: {
+          emailRedirectTo: eventLink,
+          data: {
+            name: formData.name,
+          }
+        },
+      })
+
+      if (inviteError) {
+        setError(`Failed to send invitation: ${inviteError.message}`)
+        setGuestLink(eventLink)
+        setSendingInvite(false)
+        setLoading(false)
+        return
+      }
+      setSendingInvite(false)
     }
 
     // Create the event_guest entry
@@ -105,33 +182,10 @@ export default function NewGuestPage() {
       return
     }
 
-    // Send magic link invitation if requested
     if (formData.sendInvite) {
-      setSendingInvite(true)
-      const eventLink = getEventLink()
-      
-      const { error: inviteError } = await supabase.auth.signInWithOtp({
-        email: formData.email,
-        options: {
-          emailRedirectTo: eventLink,
-          data: {
-            name: formData.name,
-          }
-        },
-      })
-
-      if (inviteError) {
-        setError(`Guest added but invitation failed: ${inviteError.message}`)
-        setGuestLink(eventLink)
-        setSendingInvite(false)
-        setLoading(false)
-        return
-      }
-      
       setSuccess(`Guest added and invitation sent to ${formData.email}`)
-      setSendingInvite(false)
     } else {
-      setGuestLink(getEventLink())
+      setGuestLink(eventLink)
       setSuccess('Guest added successfully')
     }
     
