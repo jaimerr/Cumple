@@ -31,12 +31,32 @@ npm install
 
 ### 3. Configure Environment
 
-Create `.env.local` with your Supabase credentials:
+Create `.env.local` with your credentials:
 
 ```env
+# Supabase
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+# App URL (for magic links)
+NEXT_PUBLIC_APP_URL=https://cumple.encinas.casa
+
+# Gmail SMTP (for custom invitation emails)
+GMAIL_USER=jaime.rodriguezramos@gmail.com
+GMAIL_APP_PASSWORD=your_16_char_app_password
 ```
+
+#### Getting the Service Role Key
+1. Go to Supabase Dashboard > Project Settings > API
+2. Copy the `service_role` key (keep this secret!)
+
+#### Getting Gmail App Password
+1. Go to [Google Account Security](https://myaccount.google.com/security)
+2. Enable 2-Step Verification if not already enabled
+3. Go to App Passwords (search "app passwords" in account)
+4. Create new app password for "Mail" > "Other (Custom name)" = "Cumple App"
+5. Copy the 16-character password
 
 ### 4. Configure Supabase Auth
 
@@ -62,6 +82,10 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 3. Add environment variables in Netlify:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `NEXT_PUBLIC_APP_URL` = `https://cumple.encinas.casa`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `GMAIL_USER`
+   - `GMAIL_APP_PASSWORD`
 4. Deploy!
 
 ## Venue Information

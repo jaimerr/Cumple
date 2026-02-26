@@ -14,6 +14,8 @@ export interface Profile {
   created_at: string
 }
 
+export type Language = 'es' | 'en'
+
 export interface Event {
   id: string
   organizer_id: string
@@ -26,6 +28,10 @@ export interface Event {
   address_apple_maps: string
   description: string | null
   is_active: boolean
+  email_subject_es: string | null
+  email_subject_en: string | null
+  email_body_es: string | null
+  email_body_en: string | null
   created_at: string
 }
 
@@ -37,6 +43,7 @@ export interface EventGuest {
   plus_ones: number
   dietary_notes: string | null
   responded_at: string | null
+  language: Language
   created_at: string
   profile?: Profile
 }

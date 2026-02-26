@@ -29,7 +29,35 @@ export default function NewEventPage() {
     address_apple_maps: VENUE.appleMaps,
     description: '',
     is_active: true,
+    email_subject_es: 'Invitación: {event_title}',
+    email_body_es: `Hola {guest_name},
+
+Estás invitado/a a {event_title}.
+
+Fecha: {date}
+Lugar: {venue}
+
+Por favor confirma tu asistencia haciendo clic en el siguiente enlace:
+{link}
+
+¡Esperamos verte!
+Cova y Jaime`,
+    email_subject_en: 'Invitation: {event_title}',
+    email_body_en: `Hi {guest_name},
+
+You're invited to {event_title}.
+
+Date: {date}
+Venue: {venue}
+
+Please confirm your attendance by clicking the link below:
+{link}
+
+We hope to see you there!
+Cova y Jaime`,
   })
+
+  const [showEmailTemplates, setShowEmailTemplates] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -165,6 +193,68 @@ export default function NewEventPage() {
               />
               <Label htmlFor="is_active">Active event (visible to guests)</Label>
             </div>
+
+            <div className="border-t pt-4">
+              <button
+                type="button"
+                onClick={() => setShowEmailTemplates(!showEmailTemplates)}
+                className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+              >
+                <span>{showEmailTemplates ? '▼' : '▶'}</span>
+                Email Invitation Templates
+              </button>
+              <p className="text-xs text-gray-500 mt-1">
+                Variables: {'{guest_name}'}, {'{event_title}'}, {'{date}'}, {'{venue}'}, {'{link}'}
+              </p>
+            </div>
+
+            {showEmailTemplates && (
+              <div className="space-y-6 border rounded-lg p-4 bg-gray-50">
+                <div className="space-y-4">
+                  <h4 className="font-medium text-gray-900">Spanish (Español)</h4>
+                  <div className="space-y-2">
+                    <Label htmlFor="email_subject_es">Subject</Label>
+                    <Input
+                      id="email_subject_es"
+                      value={formData.email_subject_es}
+                      onChange={(e) => setFormData({ ...formData, email_subject_es: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email_body_es">Body</Label>
+                    <Textarea
+                      id="email_body_es"
+                      value={formData.email_body_es}
+                      onChange={(e) => setFormData({ ...formData, email_body_es: e.target.value })}
+                      rows={8}
+                      className="font-mono text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4 border-t pt-4">
+                  <h4 className="font-medium text-gray-900">English</h4>
+                  <div className="space-y-2">
+                    <Label htmlFor="email_subject_en">Subject</Label>
+                    <Input
+                      id="email_subject_en"
+                      value={formData.email_subject_en}
+                      onChange={(e) => setFormData({ ...formData, email_subject_en: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email_body_en">Body</Label>
+                    <Textarea
+                      id="email_body_en"
+                      value={formData.email_body_en}
+                      onChange={(e) => setFormData({ ...formData, email_body_en: e.target.value })}
+                      rows={8}
+                      className="font-mono text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {error && (
               <p className="text-sm text-red-600 bg-red-50 p-3 rounded-md">{error}</p>

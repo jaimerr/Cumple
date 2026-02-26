@@ -10,22 +10,22 @@ import { Select } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowLeft, Loader2, Mail, Copy, CheckCircle } from 'lucide-react'
 import Link from 'next/link'
-import type { Event } from '@/lib/types'
+import type { Event, Language } from '@/lib/types'
 
 export default function NewGuestPage() {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
-  const [sendingInvite, setSendingInvite] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [events, setEvents] = useState<Event[]>([])
   const [copied, setCopied] = useState(false)
-  const [guestLink, setGuestLink] = useState<string | null>(null)
+  const [manualLink, setManualLink] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     event_id: '',
+    language: 'es' as Language,
     sendInvite: true,
   })
 
@@ -41,7 +41,7 @@ export default function NewGuestPage() {
   }, [])
 
   const getEventLink = () => {
-    const baseUrl = window.location.origin
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
     return `${baseUrl}/event/${formData.event_id}`
   }
 
@@ -56,9 +56,8 @@ export default function NewGuestPage() {
     e.preventDefault()
     setLoading(true)
     setError(null)
-    setSuccess(null)
+    setManualLink(null)
 
-    const eventLink = getEventLink()
     let profileId: string | null = null
 
     // Check if profile already exists
@@ -70,64 +69,8 @@ export default function NewGuestPage() {
 
     if (existingProfile) {
       profileId = existingProfile.id
-    }
-
-    // If sending invite, create auth user first (triggers profile creation)
-    if (formData.sendInvite && !profileId) {
-      setSendingInvite(true)
-      
-      const { error: inviteError } = await supabase.auth.signInWithOtp({
-        email: formData.email,
-        options: {
-          emailRedirectTo: eventLink,
-          data: {
-            name: formData.name,
-          }
-        },
-      })
-
-      if (inviteError) {
-        setError(`Failed to send invitation: ${inviteError.message}`)
-        setGuestLink(eventLink)
-        setSendingInvite(false)
-        setLoading(false)
-        return
-      }
-
-      // Wait for trigger to create profile, then fetch it
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      const { data: newProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', formData.email)
-        .single()
-      
-      if (newProfile) {
-        profileId = newProfile.id
-      } else {
-        // Profile not created by trigger, create manually
-        const { data: manualProfile, error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            email: formData.email,
-            name: formData.name,
-            role: 'guest',
-          })
-          .select('id')
-          .single()
-
-        if (profileError) {
-          setError(`Invitation sent but failed to create profile: ${profileError.message}`)
-          setSendingInvite(false)
-          setLoading(false)
-          return
-        }
-        profileId = manualProfile.id
-      }
-      setSendingInvite(false)
-    } else if (!profileId) {
-      // No invite requested and no existing profile - create one manually
+    } else {
+      // Create profile first
       const { data: newProfile, error: profileError } = await supabase
         .from('profiles')
         .insert({
@@ -139,49 +82,55 @@ export default function NewGuestPage() {
         .single()
 
       if (profileError) {
-        setError(profileError.message)
+        setError(`Failed to create profile: ${profileError.message}`)
         setLoading(false)
         return
       }
       profileId = newProfile.id
-    } else if (formData.sendInvite) {
-      // Profile exists, just send the invite
-      setSendingInvite(true)
-      const { error: inviteError } = await supabase.auth.signInWithOtp({
-        email: formData.email,
-        options: {
-          emailRedirectTo: eventLink,
-          data: {
-            name: formData.name,
-          }
-        },
-      })
-
-      if (inviteError) {
-        setError(`Failed to send invitation: ${inviteError.message}`)
-        setGuestLink(eventLink)
-        setSendingInvite(false)
-        setLoading(false)
-        return
-      }
-      setSendingInvite(false)
     }
 
-    // Create the event_guest entry
+    // Create the event_guest entry with language
     const { error: guestError } = await supabase.from('event_guests').insert({
       event_id: formData.event_id,
       profile_id: profileId,
       status: 'pending',
       plus_ones: 0,
+      language: formData.language,
     })
 
     if (guestError) {
-      setError(guestError.message)
+      setError(`Failed to add guest: ${guestError.message}`)
       setLoading(false)
       return
     }
 
-    // Redirect to guest list after successful creation
+    // Send invitation via our custom API
+    if (formData.sendInvite) {
+      const response = await fetch('/api/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          name: formData.name,
+          eventId: formData.event_id,
+          language: formData.language,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        setError(`Guest added but invitation failed: ${result.error}`)
+        if (result.magicLink) {
+          setManualLink(result.magicLink)
+        } else {
+          setManualLink(getEventLink())
+        }
+        setLoading(false)
+        return
+      }
+    }
+
     router.push('/admin/guests')
     router.refresh()
   }
@@ -239,6 +188,18 @@ export default function NewGuestPage() {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="language">Invitation Language</Label>
+              <Select
+                id="language"
+                value={formData.language}
+                onChange={(e) => setFormData({ ...formData, language: e.target.value as Language })}
+              >
+                <option value="es">Español (Spanish)</option>
+                <option value="en">English</option>
+              </Select>
+            </div>
+
             <div className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -257,7 +218,7 @@ export default function NewGuestPage() {
                 <p className="text-sm text-gray-600 mb-2">Event link (for manual sharing):</p>
                 <div className="flex items-center gap-2">
                   <code className="text-xs bg-white p-2 rounded border flex-1 truncate">
-                    {typeof window !== 'undefined' ? `${window.location.origin}/event/${formData.event_id}` : ''}
+                    {getEventLink()}
                   </code>
                   <Button type="button" variant="outline" size="sm" onClick={copyLink}>
                     {copied ? <CheckCircle className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
@@ -269,21 +230,21 @@ export default function NewGuestPage() {
             {error && (
               <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
                 <p>{error}</p>
-                {guestLink && (
+                {manualLink && (
                   <div className="mt-2">
                     <p className="text-gray-600">Share this link manually:</p>
-                    <code className="text-xs block mt-1 bg-white p-2 rounded">{guestLink}</code>
+                    <code className="text-xs block mt-1 bg-white p-2 rounded break-all">{manualLink}</code>
                   </div>
                 )}
               </div>
             )}
 
             <div className="flex gap-3">
-              <Button type="submit" disabled={loading || sendingInvite}>
-                {loading || sendingInvite ? (
+              <Button type="submit" disabled={loading}>
+                {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {sendingInvite ? 'Sending invite...' : 'Adding...'}
+                    {formData.sendInvite ? 'Sending...' : 'Adding...'}
                   </>
                 ) : (
                   <>
