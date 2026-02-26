@@ -11,8 +11,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Plus, Users, Mail, UserPlus } from 'lucide-react'
+import { Plus, Users, UserPlus } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
+import { DeleteGuestButton } from '@/components/admin/delete-guest-button'
 
 export default async function GuestsPage({
   searchParams,
@@ -167,9 +168,15 @@ export default async function GuestsPage({
                     {guest.responded_at ? formatDate(guest.responded_at) : '-'}
                   </TableCell>
                   <TableCell>
-                    <Link href={`/admin/guests/${guest.id}`}>
-                      <Button variant="ghost" size="sm">View</Button>
-                    </Link>
+                    <div className="flex items-center gap-1">
+                      <Link href={`/admin/guests/${guest.id}`}>
+                        <Button variant="ghost" size="sm">View</Button>
+                      </Link>
+                      <DeleteGuestButton 
+                        guestId={guest.id} 
+                        guestName={guest.profile?.name || guest.profile?.email || 'this guest'} 
+                      />
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
