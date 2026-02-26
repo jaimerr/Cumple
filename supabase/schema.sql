@@ -171,8 +171,7 @@ CREATE POLICY "Authenticated users can manage expenses" ON expenses
   FOR ALL USING (auth.uid() IS NOT NULL);
 
 -- Insert default admin profiles for Cova and Jaime
--- You'll need to update these with actual emails
-INSERT INTO profiles (email, name, role) VALUES
-  ('cova@encinas.casa', 'Covadonga', 'admin'),
-  ('jaime@encinas.casa', 'Jaime', 'admin')
+INSERT INTO cumple.profiles (email, name, role) VALUES
+  ('lleims@yahoo.com', 'Jaime', 'admin'),
+  ('cmendietaz@yahoo.es', 'Covadonga', 'admin')
 ON CONFLICT (email) DO UPDATE SET role = 'admin', name = EXCLUDED.name;
