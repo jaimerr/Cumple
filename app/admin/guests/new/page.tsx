@@ -18,7 +18,6 @@ export default function NewGuestPage() {
   const [loading, setLoading] = useState(false)
   const [sendingInvite, setSendingInvite] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
   const [events, setEvents] = useState<Event[]>([])
   const [copied, setCopied] = useState(false)
   const [guestLink, setGuestLink] = useState<string | null>(null)
@@ -182,14 +181,9 @@ export default function NewGuestPage() {
       return
     }
 
-    if (formData.sendInvite) {
-      setSuccess(`Guest added and invitation sent to ${formData.email}`)
-    } else {
-      setGuestLink(eventLink)
-      setSuccess('Guest added successfully')
-    }
-    
-    setLoading(false)
+    // Redirect to guest list after successful creation
+    router.push('/admin/guests')
+    router.refresh()
   }
 
   return (
@@ -281,13 +275,6 @@ export default function NewGuestPage() {
                     <code className="text-xs block mt-1 bg-white p-2 rounded">{guestLink}</code>
                   </div>
                 )}
-              </div>
-            )}
-
-            {success && (
-              <div className="text-sm text-green-600 bg-green-50 p-3 rounded-md flex items-center gap-2">
-                <CheckCircle className="h-4 w-4" />
-                <span>{success}</span>
               </div>
             )}
 

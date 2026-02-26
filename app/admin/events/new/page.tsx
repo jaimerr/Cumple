@@ -53,6 +53,7 @@ export default function NewEventPage() {
       setLoading(false)
     } else {
       router.push('/admin/events')
+      router.refresh()
     }
   }
 
