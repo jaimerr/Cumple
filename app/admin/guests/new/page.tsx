@@ -120,7 +120,8 @@ export default function NewGuestPage() {
       const result = await response.json()
 
       if (!response.ok) {
-        setError(`Guest added but invitation failed: ${result.error}`)
+        const debugInfo = result.debug ? `\n\nDebug: ${result.debug.join(' → ')}` : ''
+        setError(`Guest added but invitation failed: ${result.error}${debugInfo}`)
         if (result.magicLink) {
           setManualLink(result.magicLink)
         } else {
