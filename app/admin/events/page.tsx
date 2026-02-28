@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Plus, Calendar, MapPin } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
+import { DeleteEventButton } from '@/components/admin/delete-event-button'
 
 export default async function EventsPage() {
   const supabase = await createClient()
@@ -43,40 +44,41 @@ export default async function EventsPage() {
       ) : (
         <div className="grid gap-6">
           {events.map((event) => (
-            <Link key={event.id} href={`/admin/events/${event.id}`}>
-              <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-xl">{event.title}</CardTitle>
-                      <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          {formatDate(event.event_date)}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <MapPin className="h-4 w-4" />
-                          {event.venue_name}
-                        </span>
-                      </div>
+            <Card key={event.id} className="hover:shadow-md transition-shadow">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <Link href={`/admin/events/${event.id}`} className="flex-1 cursor-pointer">
+                    <CardTitle className="text-xl">{event.title}</CardTitle>
+                    <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-4 w-4" />
+                        {formatDate(event.event_date)}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <MapPin className="h-4 w-4" />
+                        {event.venue_name}
+                      </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={event.celebrant === 'Cova' ? 'default' : 'secondary'}>
-                        {event.celebrant}
-                      </Badge>
-                      {event.is_active && (
-                        <Badge variant="success">Active</Badge>
-                      )}
-                    </div>
+                  </Link>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={event.celebrant === 'Cova' ? 'default' : 'secondary'}>
+                      {event.celebrant}
+                    </Badge>
+                    {event.is_active && (
+                      <Badge variant="success">Active</Badge>
+                    )}
+                    <DeleteEventButton eventId={event.id} eventTitle={event.title} />
                   </div>
-                </CardHeader>
-                {event.description && (
-                  <CardContent>
+                </div>
+              </CardHeader>
+              {event.description && (
+                <CardContent>
+                  <Link href={`/admin/events/${event.id}`}>
                     <p className="text-gray-600 line-clamp-2">{event.description}</p>
-                  </CardContent>
-                )}
-              </Card>
-            </Link>
+                  </Link>
+                </CardContent>
+              )}
+            </Card>
           ))}
         </div>
       )}
